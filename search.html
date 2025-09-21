@@ -1,0 +1,269 @@
+<!-- File: /search.html -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marginalia — Search</title>
+<style>
+/* == Basic layout & theme == */
+:root {
+  --bg: #0f1720;
+  --card: #0b1220;
+  --muted: #98a1b2;
+  --accent: #6ee7b7;
+  --accent-2: #8b5cf6;
+  --radius: 12px;
+  --maxw: 600px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body {
+  background: var(--bg);
+  color: #e6eef6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  overflow-x: hidden;
+}
+.app {
+  width: 100%;
+  max-width: var(--maxw);
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+.header {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.header .brand { font-size: 18px; font-weight: 700; }
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: var(--card);
+  border-radius: var(--radius);
+  margin: 10px;
+}
+.search-bar input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: inherit;
+  font-size: 16px;
+  padding: 5px;
+}
+.search-bar .btn {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 5px;
+}
+.center {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+.card { background: var(--card); border-radius: var(--radius); padding: 15px; margin-bottom: 10px; }
+.feed { display: flex; flex-direction: column; gap: 10px; }
+.post {
+  display: flex;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
+  padding: 10px;
+  border-radius: var(--radius);
+}
+.post .meta { display: flex; gap: 8px; align-items: flex-start; }
+.post .body { flex: 1; }
+.post .text { white-space: pre-wrap; margin-top: 5px; }
+.post img.post-image, .post video.post-video {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 5px;
+  max-height: 300px;
+  object-fit: cover;
+}
+.post .actions { display: flex; gap: 10px; margin-top: 5px; align-items: center; flex-wrap: wrap; }
+.time { font-size: 12px; color: var(--muted); }
+.like-btn.liked { color: #ff7ab6; }
+.repost-btn.reposted { color: #6ee7b7; }
+#noResults { text-align: center; color: var(--muted); padding: 10px; }
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-width: var(--maxw);
+  background: var(--card);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+.bottom-nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 12px;
+}
+.bottom-nav .nav-item.active { color: var(--accent); }
+.bottom-nav .nav-item i { font-size: 20px; margin-bottom: 2px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .btn { padding: 4px; font-size: 13px; }
+  .post img.post-image, .post video.post-video { max-height: 200px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <div class="brand">Marginalia</div>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search posts..." />
+    <button class="btn" id="searchButton"><i class="fas fa-search"></i></button>
+  </div>
+  <div class="center">
+    <div id="feed" class="feed"></div>
+    <div id="noResults" style="display:none">No results found.</div>
+  </div>
+  <div class="bottom-nav">
+    <a href="index.html" class="nav-item" data-section="home"><i class="fas fa-home"></i>Home</a>
+    <a href="search.html" class="nav-item active" data-section="search"><i class="fas fa-search"></i>Search</a>
+    <a href="#" class="nav-item" data-section="notifications"><i class="fas fa-bell"></i>Notifications</a>
+    <a href="#" class="nav-item" data-section="messages"><i class="fas fa-envelope"></i>Messages</a>
+  </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<script>
+/* Minimal utilities */
+const q = sel => document.querySelector(sel);
+const uid = (n = 8) => Math.random().toString(36).slice(2, 2 + n);
+
+/* Persistence */
+const STORAGE_KEY = 'marginalia.v2';
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return seedInitial();
+    return JSON.parse(raw);
+  } catch (e) { return seedInitial(); }
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+/* Simple password hash (demo only) */
+function hashPassword(p) {
+  let h = 2166136261;
+  for (let i = 0; i < p.length; i++) { h ^= p.charCodeAt(i); h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24); }
+  return (h >>> 0).toString(36);
+}
+
+/* Demo seed */
+function seedInitial() {
+  const alice = { id: 'u_' + uid(6), username: 'alice', displayName: 'Alice Jun', bio: '', avatarDataUrl: null, passwordHash: hashPassword('alice'), following: [], followersCount: 0 };
+  const bob = { id: 'u_' + uid(6), username: 'bob', displayName: 'Bob Chen', bio: '', avatarDataUrl: null, passwordHash: hashPassword('bob'), following: [alice.id], followersCount: 0 };
+  const carol = { id: 'u_' + uid(6), username: 'carol', displayName: 'Caroline', bio: '', avatarDataUrl: null, passwordHash: hashPassword('carol'), following: [], followersCount: 0 };
+  const users = [alice, bob, carol];
+  const posts = [
+    { id: 'p_' + uid(6), authorId: alice.id, text: "Hello Marginalia! #hello", imageDataUrl: null, videoDataUrl: null, poll: null, timestamp: Date.now() - 3600 * 1000 * 4, likes: [], reposts: [], replies: [] },
+    { id: 'p_' + uid(6), authorId: bob.id, text: "Testing uploads with some text.", imageDataUrl: null, videoDataUrl: null, poll: null, timestamp: Date.now() - 3600 * 1000 * 2, likes: [], reposts: [], replies: [] },
+    { id: 'p_' + uid(6), authorId: carol.id, text: "Poem time under the stars.", imageDataUrl: null, videoDataUrl: null, poll: null, timestamp: Date.now() - 3600 * 1000 * 1, likes: [], reposts: [], replies: [] },
+  ];
+  users.forEach(u => u.followersCount = users.filter(x => x.following && x.following.includes(u.id)).length);
+  return { users, posts, session: { userId: null } };
+}
+
+/* App state */
+let state = loadState();
+
+/* Helpers */
+function getUserById(id) { return state.users.find(u => u.id === id); }
+function getPostsSorted() { return state.posts.slice().sort((a, b) => b.timestamp - a.timestamp); }
+function escapeHtml(t) { return t.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  return s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h`;
+}
+
+/* UI rendering */
+const feedEl = q('#feed');
+const noResultsEl = q('#noResults');
+
+function renderPost(p) {
+  const author = getUserById(p.authorId) || { displayName: 'Unknown', username: 'unknown' };
+  const el = document.createElement('div');
+  el.className = 'post';
+  el.innerHTML = `
+    <div class="meta">
+      <div class="avatar">${author.displayName[0] || '?'}</div>
+    </div>
+    <div class="body">
+      <div><strong>${escapeHtml(author.displayName)}</strong> <span class="time">${timeAgo(p.timestamp)}</span></div>
+      <div class="text">${escapeHtml(p.text)}</div>
+      ${p.imageDataUrl ? `<img class="post-image" src="${p.imageDataUrl}" alt="post image" />` : ''}
+      ${p.videoDataUrl ? `<video class="post-video" src="${p.videoDataUrl}" controls></video>` : ''}
+      <div class="actions">
+        <button class="btn like-btn">♥ 0</button>
+        <button class="btn">Reply 0</button>
+        <button class="btn repost-btn">Repost 0</button>
+        <button class="btn">Share</button>
+      </div>
+    </div>
+  `;
+  feedEl.appendChild(el);
+}
+
+function performSearch(query) {
+  feedEl.innerHTML = '';
+  noResultsEl.style.display = 'none';
+  if (!query) return;
+  const matchedPosts = getPostsSorted().filter(p => p.text.toLowerCase().includes(query.toLowerCase()));
+  if (matchedPosts.length > 0) {
+    matchedPosts.forEach(renderPost);
+  } else {
+    noResultsEl.style.display = 'block';
+  }
+}
+
+/* Event handlers */
+q('#searchButton').addEventListener('click', () => {
+  const query = q('#searchInput').value.trim();
+  performSearch(query);
+});
+
+q('#searchInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const query = q('#searchInput').value.trim();
+    performSearch(query);
+  }
+});
+
+/* Navigation */
+q('.bottom-nav').addEventListener('click', (e) => {
+  const target = e.target.closest('.nav-item');
+  if (target) {
+    qn('.nav-item').forEach(item => item.classList.remove('active'));
+    target.classList.add('active');
+    const section = target.getAttribute('data-section');
+    if (section === 'home') window.location.href = 'index.html';
+    else if (section === 'search') window.location.href = 'search.html';
+    else if (section === 'notifications') alert('Notifications coming soon!');
+    else if (section === 'messages') alert('Messages coming soon!');
+  }
+});
+
+/* Init */
+</script>
+</body>
+</html>
