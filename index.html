@@ -1,0 +1,1223 @@
+<!-- File: /social.html -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Marginalia — Uncensored Social Prototype</title>
+<style>
+/* == Basic layout & theme == */
+:root {
+  --bg: #0f1720;
+  --card: #0b1220;
+  --muted: #98a1b2;
+  --accent: #6ee7b7;
+  --accent-2: #8b5cf6;
+  --glass: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  --radius: 12px;
+  --maxw: 1200px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
+body {
+  background: radial-gradient(800px 400px at 10% 10%, rgba(139,92,246,0.06), transparent 6%), linear-gradient(180deg, var(--bg), #071022 60%);
+  color: #e6eef6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px;
+  overflow-x: hidden;
+}
+.app {
+  width: 100%;
+  max-width: var(--maxw);
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  gap: 16px;
+  align-items: start;
+}
+.header {
+  grid-column: 1/-1;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #021017;
+}
+.topbar {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: 0 6px 18px rgba(3,6,12,0.6);
+}
+/* left column */
+.left .user-mini { display: flex; gap: 12px; align-items: center; }
+.avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #09303a, #04202a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 22px;
+}
+.btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 10px 16px;
+  border-radius: 10px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  touch-action: manipulation;
+}
+.btn.primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: 0;
+  color: #042022;
+}
+.small { font-size: 13px; color: var(--muted); }
+.follow-btn {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 0;
+  background: linear-gradient(90deg, #132a2b, #0b2730);
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+}
+.suggest-list { display: grid; gap: 8px; margin-top: 12px; }
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+}
+/* mid column feed */
+.center { min-height: 60vh; }
+.composer { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+.composer textarea {
+  flex: 1;
+  min-height: 64px;
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,0.04);
+  padding: 12px;
+  border-radius: 10px;
+  color: inherit;
+  resize: vertical;
+}
+.composer .composer-actions { display: flex; flex-direction: column; gap: 8px; }
+.feed { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.post {
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.post .meta { display: flex; gap: 8px; align-items: center; }
+.post .body { min-width: 0; flex: 1; }
+.post img.post-image, .post video.post-video {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 8px;
+  display: block;
+  max-height: 420px;
+  object-fit: cover;
+}
+.post .poll-options { margin-top: 8px; display: grid; gap: 6px; }
+.post .poll-option {
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.post .actions { display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
+.icon { opacity: 0.86; }
+.badge { background: rgba(255,255,255,0.04); padding: 6px 8px; border-radius: 999px; font-size: 13px; color: var(--muted); }
+.time { font-size: 12px; color: var(--muted); }
+.like-btn.liked { color: #ff7ab6; }
+.repost-btn.reposted { color: #6ee7b7; }
+.following { background: transparent; border: 1px solid rgba(255,255,255,0.06); color: var(--muted); padding: 6px 10px; border-radius: 999px; }
+.controls { display: flex; gap: 8px; align-items: center; }
+/* right column */
+.right .trends, .right .dm-section { display: flex; flex-direction: column; gap: 8px; }
+.trend-item, .dm-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+}
+.search {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+  position: relative;
+}
+.search input {
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: inherit;
+  width: 100%;
+}
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border-radius: 10px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.search-suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.search-suggestion-item:hover {
+  background: rgba(255,255,255,0.05);
+}
+/* DM section */
+.dm-conversation {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+.dm-message {
+  padding: 6px 10px;
+  margin: 4px 0;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+}
+.dm-message.sent { background: var(--accent); color: #042022; align-self: flex-end; }
+.dm-input { display: flex; gap: 8px; margin-top: 8px; }
+.dm-input input { flex: 1; padding: 8px; border-radius: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.04); }
+/* modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,12,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 40;
+  overflow-y: auto;
+}
+.modal .card { width: 100%; max-width: 680px; }
+.hidden { display: none !important; }
+/* responsive */
+@media (max-width: 1200px) {
+  .app { grid-template-columns: 220px 1fr 260px; gap: 12px; }
+}
+@media (max-width: 1000px) {
+  .app { grid-template-columns: 1fr; padding: 12px; }
+  .left, .right { display: none; }
+  .header { grid-column: 1/-1; flex-direction: column; align-items: flex-start; }
+  .topbar { width: 100%; justify-content: space-between; }
+  .search { width: 100%; max-width: none; }
+}
+@media (max-width: 600px) {
+  body { padding: 8px; }
+  .btn { padding: 8px 12px; font-size: 13px; }
+  .avatar { width: 48px; height: 48px; font-size: 18px; }
+  .post .avatar { width: 40px; height: 40px; }
+  .modal .card { max-width: 100%; }
+  .composer textarea { min-height: 80px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header" style="grid-column:1/-1">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div>
+        <div style="font-size:18px">Marginalia</div>
+        <div style="font-size:12px;color:var(--muted)">Uncensored prototype</div>
+      </div>
+    </div>
+    <div class="topbar">
+      <div class="search card" style="padding:8px 12px;width:320px;">
+        <input id="globalSearch" placeholder="Search users, hashtags, or posts…" autocomplete="off" />
+        <div class="search-suggestions hidden" id="searchSuggestions"></div>
+      </div>
+      <button class="btn" id="btnNewPost">New Post</button>
+      <button class="btn" id="btnDMs">Messages</button>
+      <div id="authArea"></div>
+    </div>
+  </div>
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="card">
+      <div id="leftUserCard" class="user-mini"></div>
+      <div style="margin-top:12px" class="small">Suggested accounts</div>
+      <div class="suggest-list" id="suggestList"></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <div class="card">
+      <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" id="feedAll">For you</button>
+          <button class="btn" id="feedFollowing">Following</button>
+        </div>
+        <div class="small" id="feedInfo">Showing latest</div>
+      </div>
+      <div style="margin-top:12px" class="composer">
+        <div id="miniAvatar" class="avatar">?</div>
+        <textarea id="miniComposer" placeholder="Share something... (press Enter+Ctrl to post)"></textarea>
+        <div class="composer-actions">
+          <input type="file" id="miniMedia" accept="image/*,video/mp4,video/webm" style="display:none" />
+          <button class="btn" id="miniAttach">Attach</button>
+          <button class="btn" id="miniPoll">Add Poll</button>
+          <button class="btn primary" id="miniPost">Post</button>
+        </div>
+      </div>
+      <div id="feed" class="feed" aria-live="polite"></div>
+      <div id="feedLoader" style="text-align:center;padding:18px;color:var(--muted)">Loading more…</div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700">Trends</div>
+        <div class="small">Realtime-ish</div>
+      </div>
+      <div class="trends" id="trendsBox" style="margin-top:10px"></div>
+    </div>
+    <div class="card dm-section" style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700">Messages</div>
+        <div class="small">Direct messages</div>
+      </div>
+      <div class="dm-section" id="dmBox" style="margin-top:10px"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div style="font-weight:700">About this demo</div>
+      <div class="small" style="margin-top:8px;color:var(--muted)">
+        This is a front-end prototype. Everything persists locally in your browser (localStorage). It intentionally includes no content moderation — use responsibly.
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="modalRoot"></div>
+</div>
+
+<script>
+/* Minimal utilities */
+const q = sel => document.querySelector(sel);
+const qn = sel => Array.from(document.querySelectorAll(sel));
+const uid = (n=8) => Math.random().toString(36).slice(2,2+n);
+
+/* Persistence */
+const STORAGE_KEY = 'marginalia.v2';
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return seedInitial();
+    return JSON.parse(raw);
+  } catch (e) { return seedInitial(); }
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/* Simple password hash (demo only) */
+function hashPassword(p) {
+  let h = 2166136261;
+  for (let i = 0; i < p.length; i++) { h ^= p.charCodeAt(i); h += (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24); }
+  return (h >>> 0).toString(36);
+}
+
+/* Demo seed */
+function seedInitial() {
+  const alice = { id: 'u_' + uid(6), username: 'alice', displayName: 'Alice Jun', bio: 'I like sunsets & long code', avatarDataUrl: null, passwordHash: hashPassword('alice'), following: [], followersCount: 0 };
+  const bob = { id: 'u_' + uid(6), username: 'bob', displayName: 'Bob Chen', bio: 'Open source tinkerer', avatarDataUrl: null, passwordHash: hashPassword('bob'), following: [alice.id], followersCount: 0 };
+  const carol = { id: 'u_' + uid(6), username: 'carol', displayName: 'Caroline', bio: 'Poet & dev', avatarDataUrl: null, passwordHash: hashPassword('carol'), following: [], followersCount: 0 };
+  const users = [alice, bob, carol];
+  const posts = [
+    { id: 'p_' + uid(6), authorId: alice.id, text: "Hello Marginalia — first post! #hello #marginalia", imageDataUrl: null, videoDataUrl: null, poll: null, timestamp: Date.now() - 3600*1000*4, likes: [], reposts: [], replies: [] },
+    { id: 'p_' + uid(6), authorId: bob.id, text: "Testing uploads — here's a tiny color block.", imageDataUrl: makeColorDataURL('#8b5cf6'), videoDataUrl: null, poll: null, timestamp: Date.now() - 3600*1000*2, likes: [], reposts: [], replies: [] },
+    { id: 'p_' + uid(6), authorId: carol.id, text: "Poem: the server dreams in JSON.", imageDataUrl: null, videoDataUrl: null, poll: { options: [{ text: 'Like it?', votes: 0 }, { text: 'Love it!', votes: 0 }], voters: [] }, timestamp: Date.now() - 3600*1000*1, likes: [], reposts: [], replies: [] },
+  ];
+  users.forEach(u => u.followersCount = users.filter(x => x.following && x.following.includes(u.id)).length);
+  const s = { users, posts, messages: [], session: { userId: bob.id } };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  return s;
+}
+
+function makeColorDataURL(hex) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='800' height='400'><rect width='100%' height='100%' fill='${hex}'/></svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+/* App state */
+let state = loadState();
+
+/* Helpers to find entities */
+function getUserById(id) { return state.users.find(u => u.id === id); }
+function getUserByUsername(un) { return state.users.find(u => u.username.toLowerCase() === un.toLowerCase()); }
+function getPostsSorted() { return state.posts.slice().sort((a, b) => b.timestamp - a.timestamp); }
+
+/* UI rendering */
+const feedEl = q('#feed');
+const feedLoader = q('#feedLoader');
+let feedMode = 'all';
+let activeProfile = null;
+let feedCursor = 0;
+const FEED_BATCH = 10;
+let isLoading = false;
+
+/* Render left user card */
+function renderLeft() {
+  const container = q('#leftUserCard');
+  container.innerHTML = '';
+  const me = getCurrentUser();
+  if (!me) {
+    const btn = document.createElement('button');
+    btn.className = 'btn primary';
+    btn.textContent = 'Sign up / Login';
+    btn.onclick = () => showAuthModal();
+    container.appendChild(btn);
+    return;
+  }
+  const a = document.createElement('div');
+  a.style.flex = 1;
+  const av = document.createElement('div');
+  av.className = 'avatar';
+  av.textContent = me.displayName.split(' ').map(s => s[0]).slice(0, 2).join('');
+  const info = document.createElement('div');
+  info.innerHTML = `<div style="font-weight:700">${escapeHtml(me.displayName)} <span class="small">@${escapeHtml(me.username)}</span></div>
+                    <div class="small" style="margin-top:6px;color:var(--muted)">${escapeHtml(me.bio || '')}</div>
+                    <div style="margin-top:8px" class="small">${me.followersCount} followers</div>`;
+  container.appendChild(av);
+  container.appendChild(info);
+}
+
+/* Suggested */
+function renderSuggested() {
+  const el = q('#suggestList');
+  el.innerHTML = '';
+  const me = getCurrentUser();
+  state.users.slice(0, 6).forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'suggest-item';
+    item.innerHTML = `<div style="display:flex;gap:8px;align-items:center">
+      <div class="avatar" style="width:44px;height:44px;border-radius:10px">${u.displayName.split(' ')[0][0] || '~'}</div>
+      <div style="min-width:0">
+        <div style="font-weight:700">${escapeHtml(u.displayName)}</div>
+        <div class="small">@${escapeHtml(u.username)}</div>
+      </div>
+    </div>`;
+    const btn = document.createElement('button');
+    btn.className = 'follow-btn';
+    const isFollowing = me && me.following && me.following.includes(u.id);
+    btn.textContent = isFollowing ? 'Following' : 'Follow';
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (!me) { showAuthModal(); return; }
+      toggleFollow(me.id, u.id);
+      renderAll();
+    };
+    item.appendChild(btn);
+    item.onclick = () => openProfile(u.username);
+    el.appendChild(item);
+  });
+}
+
+/* Feed */
+function resetFeed(cursor = 0) {
+  feedCursor = cursor;
+  feedEl.innerHTML = '';
+  feedLoader.style.display = 'block';
+  renderFeedBatch();
+}
+function renderFeedBatch() {
+  if (isLoading) return;
+  isLoading = true;
+  const allPosts = getPostsSorted();
+  const filtered = allPosts.filter(p => {
+    if (feedMode === 'all') return true;
+    if (feedMode === 'following') {
+      const me = getCurrentUser();
+      if (!me) return false;
+      return me.following.includes(p.authorId);
+    }
+    if (feedMode === 'profile') {
+      if (!activeProfile) return false;
+      return p.authorId === activeProfile.id;
+    }
+    return true;
+  });
+  const batch = filtered.slice(feedCursor, feedCursor + FEED_BATCH);
+  batch.forEach(renderPost);
+  feedCursor += batch.length;
+  feedLoader.style.display = feedCursor >= filtered.length ? 'none' : 'block';
+  isLoading = false;
+}
+
+/* Render a single post element */
+function renderPost(p) {
+  const author = getUserById(p.authorId) || { displayName: 'Unknown', username: 'unknown' };
+  const me = getCurrentUser();
+  const el = document.createElement('div');
+  el.className = 'post';
+  let pollHtml = '';
+  if (p.poll) {
+    const totalVotes = p.poll.voters.length;
+    pollHtml = '<div class="poll-options">';
+    p.poll.options.forEach((opt, idx) => {
+      const votes = opt.votes || 0;
+      const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+      pollHtml += `<div class="poll-option">
+        <span>${escapeHtml(opt.text)}</span>
+        <span class="small">${votes} votes (${percentage}%)</span>
+      </div>`;
+    });
+    pollHtml += '</div>';
+  }
+  el.innerHTML = `
+    <div class="meta">
+      <div class="avatar" style="width:56px;height:56px;border-radius:10px">${author.displayName[0] || '?'}</div>
+    </div>
+    <div class="body" style="flex:1">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700">${escapeHtml(author.displayName)} <span class="small">@${escapeHtml(author.username)}</span></div>
+          <div class="time small">${timeAgo(p.timestamp)}</div>
+        </div>
+        <div class="controls">
+          ${me && me.id !== author.id ? `<button class="btn follow-btn small" data-follow="${author.id}">${me && me.following && me.following.includes(author.id) ? 'Following' : 'Follow'}</button>` : ''}
+          ${me && me.id === author.id ? `<button class="btn small" data-delete="${p.id}">Delete</button>` : ''}
+        </div>
+      </div>
+      <div class="text" style="margin-top:8px;white-space:pre-wrap">${linkify(escapeHtml(p.text))}</div>
+      ${p.imageDataUrl ? `<img class="post-image" src="${p.imageDataUrl}" alt="post image" />` : ''}
+      ${p.videoDataUrl ? `<video class="post-video" src="${p.videoDataUrl}" controls></video>` : ''}
+      ${pollHtml}
+      <div class="actions">
+        <button class="btn like-btn ${me && p.likes.includes(me.id) ? 'liked' : ''}" data-like="${p.id}">♥ <span class="small">${p.likes.length}</span></button>
+        <button class="btn" data-reply="${p.id}">↩ Reply <span class="small">${p.replies.length || 0}</span></button>
+        <button class="btn repost-btn ${me && p.reposts.includes(me.id) ? 'reposted' : ''}" data-repost="${p.id}">⟲ Repost <span class="small">${p.reposts.length}</span></button>
+        <button class="btn" data-share="${p.id}">↗ Share</button>
+      </div>
+    </div>
+  `;
+  el.querySelectorAll('[data-like]').forEach(btn => {
+    btn.onclick = () => {
+      if (!me) { showAuthModal(); return; }
+      toggleLike(me.id, btn.getAttribute('data-like'));
+      refreshFeedUI();
+    };
+  });
+  el.querySelectorAll('[data-follow]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (!me) { showAuthModal(); return; }
+      toggleFollow(me.id, btn.getAttribute('data-follow'));
+      refreshFeedUI();
+      renderSuggested();
+    };
+  });
+  el.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.onclick = () => {
+      deletePost(btn.getAttribute('data-delete'));
+      refreshFeedUI(true);
+    };
+  });
+  el.querySelectorAll('[data-reply]').forEach(btn => {
+    btn.onclick = () => showReplyModal(p.id);
+  });
+  el.querySelectorAll('[data-repost]').forEach(btn => {
+    btn.onclick = () => {
+      if (!me) { showAuthModal(); return; }
+      toggleRepost(me.id, btn.getAttribute('data-repost'));
+      refreshFeedUI();
+    };
+  });
+  el.querySelectorAll('[data-share]').forEach(btn => {
+    btn.onclick = () => sharePost(p.id);
+  });
+  if (p.poll && me) {
+    el.querySelectorAll('.poll-option').forEach((opt, idx) => {
+      opt.onclick = () => {
+        if (p.poll.voters.includes(me.id)) return alert('You have already voted.');
+        p.poll.options[idx].votes = (p.poll.options[idx].votes || 0) + 1;
+        p.poll.voters.push(me.id);
+        saveState();
+        refreshFeedUI();
+      };
+    });
+  }
+  feedEl.appendChild(el);
+}
+
+/* Utility actions */
+function toggleLike(userId, postId) {
+  const post = state.posts.find(p => p.id === postId);
+  if (!post) return;
+  const idx = post.likes.indexOf(userId);
+  if (idx >= 0) post.likes.splice(idx, 1);
+  else post.likes.push(userId);
+  saveState();
+}
+function toggleFollow(meId, targetId) {
+  if (meId === targetId) return;
+  const me = getUserById(meId);
+  const t = getUserById(targetId);
+  if (!me || !t) return;
+  const idx = me.following.indexOf(targetId);
+  if (idx >= 0) { me.following.splice(idx, 1); t.followersCount = Math.max(0, (t.followersCount || 0) - 1); }
+  else { me.following.push(targetId); t.followersCount = (t.followersCount || 0) + 1; }
+  saveState();
+}
+function toggleRepost(userId, postId) {
+  const post = state.posts.find(p => p.id === postId);
+  if (!post) return;
+  const idx = post.reposts.indexOf(userId);
+  if (idx >= 0) {
+    post.reposts.splice(idx, 1);
+  } else {
+    post.reposts.push(userId);
+    state.posts.push({
+      id: 'p_' + uid(6),
+      authorId: userId,
+      text: `Reposted: ${post.text}`,
+      imageDataUrl: post.imageDataUrl,
+      videoDataUrl: post.videoDataUrl,
+      poll: post.poll ? { options: post.poll.options.map(o => ({ text: o.text, votes: 0 })), voters: [] } : null,
+      timestamp: Date.now(),
+      likes: [],
+      reposts: [],
+      replies: []
+    });
+  }
+  saveState();
+}
+function deletePost(postId) {
+  const i = state.posts.findIndex(p => p.id === postId);
+  if (i >= 0) state.posts.splice(i, 1);
+  saveState();
+}
+function sharePost(postId) {
+  const post = state.posts.find(p => p.id === postId);
+  if (!post) return;
+  const url = `${window.location.origin}/post/${postId}`;
+  if (navigator.share) {
+    navigator.share({
+      title: `Post by @${getUserById(post.authorId)?.username || 'unknown'}`,
+      text: post.text,
+      url
+    }).catch(() => navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard')));
+  } else {
+    navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard'));
+  }
+}
+
+/* Compose */
+q('#miniAttach').onclick = () => q('#miniMedia').click();
+q('#miniMedia').onchange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (f.size > 10 * 1024 * 1024) return alert('File size must be under 10MB.');
+  const data = await fileToDataUrl(f);
+  q('#miniComposer').dataset.media = data;
+  q('#miniComposer').dataset.mediaType = f.type.startsWith('video') ? 'video' : 'image';
+};
+q('#miniPoll').onclick = () => showPollModal();
+q('#miniPost').onclick = () => createMiniPost();
+q('#btnNewPost').onclick = () => showCreateModal();
+q('#btnDMs').onclick = () => showDMModal();
+q('#miniComposer').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); createMiniPost(); }
+});
+async function createMiniPost() {
+  const me = getCurrentUser();
+  if (!me) { showAuthModal(); return; }
+  const text = q('#miniComposer').value.trim();
+  const media = q('#miniComposer').dataset.media || null;
+  const mediaType = q('#miniComposer').dataset.mediaType || null;
+  const poll = q('#miniComposer').dataset.poll ? JSON.parse(q('#miniComposer').dataset.poll) : null;
+  if (!text && !media && !poll) return alert('Write something, attach media, or add a poll.');
+  const post = {
+    id: 'p_' + uid(6),
+    authorId: me.id,
+    text,
+    imageDataUrl: mediaType === 'image' ? media : null,
+    videoDataUrl: mediaType === 'video' ? media : null,
+    poll,
+    timestamp: Date.now(),
+    likes: [],
+    reposts: [],
+    replies: []
+  };
+  state.posts.push(post);
+  q('#miniComposer').value = '';
+  delete q('#miniComposer').dataset.media;
+  delete q('#miniComposer').dataset.mediaType;
+  delete q('#miniComposer').dataset.poll;
+  saveState();
+  refreshFeedUI(true);
+}
+
+/* Poll modal */
+function showPollModal() {
+  const tpl = document.createElement('div');
+  tpl.className = 'modal';
+  tpl.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700">Create Poll</div>
+      <button class="btn" id="closePoll">Close</button>
+    </div>
+    <div style="margin-top:8px">
+      <input id="pollOption1" placeholder="Option 1" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px"/>
+      <input id="pollOption2" placeholder="Option 2" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px"/>
+      <input id="pollOption3" placeholder="Option 3 (optional)" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px"/>
+      <input id="pollOption4" placeholder="Option 4 (optional)" style="width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn primary" id="savePoll">Save</button>
+        <button class="btn" id="cancelPoll">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(tpl);
+  tpl.querySelector('#closePoll').onclick = () => tpl.remove();
+  tpl.querySelector('#cancelPoll').onclick = () => tpl.remove();
+  tpl.querySelector('#savePoll').onclick = () => {
+    const options = [
+      tpl.querySelector('#pollOption1').value.trim(),
+      tpl.querySelector('#pollOption2').value.trim(),
+      tpl.querySelector('#pollOption3').value.trim(),
+      tpl.querySelector('#pollOption4').value.trim()
+    ].filter(o => o);
+    if (options.length < 2) return alert('At least two options are required.');
+    q('#miniComposer').dataset.poll = JSON.stringify({ options: options.map(text => ({ text, votes: 0 })), voters: [] });
+    tpl.remove();
+  };
+}
+
+/* Reply modal */
+function showReplyModal(postId) {
+  const post = state.posts.find(p => p.id === postId);
+  if (!post) return;
+  const author = getUserById(post.authorId) || {};
+  const tpl = document.createElement('div');
+  tpl.className = 'modal';
+  tpl.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700">Reply to ${escapeHtml(author.username)}</div>
+      <button class="btn" id="closeReply">Close</button>
+    </div>
+    <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.02);padding-top:10px">
+      <div style="white-space:pre-wrap">${escapeHtml(post.text)}</div>
+      ${post.imageDataUrl ? `<img style="max-width:100%;margin-top:8px" src="${post.imageDataUrl}">` : ''}
+      ${post.videoDataUrl ? `<video style="max-width:100%;margin-top:8px" src="${post.videoDataUrl}" controls></video>` : ''}
+      <textarea id="replyText" style="width:100%;margin-top:10px;height:100px;background:transparent;color:inherit;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.04)"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn primary" id="sendReply">Send</button>
+        <button class="btn" id="cancelReply">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(tpl);
+  tpl.querySelector('#closeReply').onclick = () => tpl.remove();
+  tpl.querySelector('#cancelReply').onclick = () => tpl.remove();
+  tpl.querySelector('#sendReply').onclick = () => {
+    const t = tpl.querySelector('#replyText').value.trim();
+    const me = getCurrentUser();
+    if (!me) { showAuthModal(); tpl.remove(); return; }
+    if (!t) return alert('Reply cannot be empty');
+    post.replies.push({ id: 'r_' + uid(6), authorId: me.id, text: t, timestamp: Date.now() });
+    saveState();
+    tpl.remove();
+    refreshFeedUI();
+  };
+}
+
+/* Create modal */
+function showCreateModal() {
+  const tpl = document.createElement('div');
+  tpl.className = 'modal';
+  tpl.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700">New Post</div>
+      <button class="btn" id="closeCreate">Close</button>
+    </div>
+    <div style="margin-top:8px">
+      <textarea id="createText" style="width:100%;height:140px;background:transparent;color:inherit;border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,0.04)"></textarea>
+      <input type="file" id="createMedia" accept="image/*,video/mp4,video/webm" style="margin-top:8px" />
+      <button class="btn" id="createPoll" style="margin-top:8px">Add Poll</button>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn primary" id="createSend">Post</button>
+        <button class="btn" id="createCancel">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(tpl);
+  tpl.querySelector('#closeCreate').onclick = () => tpl.remove();
+  tpl.querySelector('#createCancel').onclick = () => tpl.remove();
+  tpl.querySelector('#createPoll').onclick = () => {
+    showPollModal();
+    tpl.remove();
+  };
+  tpl.querySelector('#createSend').onclick = async () => {
+    const me = getCurrentUser();
+    if (!me) { tpl.remove(); showAuthModal(); return; }
+    const text = tpl.querySelector('#createText').value.trim();
+    const f = tpl.querySelector('#createMedia').files[0];
+    const poll = q('#miniComposer').dataset.poll ? JSON.parse(q('#miniComposer').dataset.poll) : null;
+    if (!text && !f && !poll) return alert('Write something, attach media, or add a poll.');
+    let media = null, mediaType = null;
+    if (f) {
+      if (f.size > 10 * 1024 * 1024) return alert('File size must be under 10MB.');
+      media = await fileToDataUrl(f);
+      mediaType = f.type.startsWith('video') ? 'video' : 'image';
+    }
+    state.posts.unshift({
+      id: 'p_' + uid(6),
+      authorId: me.id,
+      text,
+      imageDataUrl: mediaType === 'image' ? media : null,
+      videoDataUrl: mediaType === 'video' ? media : null,
+      poll,
+      timestamp: Date.now(),
+      likes: [],
+      reposts: [],
+      replies: []
+    });
+    saveState();
+    tpl.remove();
+    refreshFeedUI(true);
+  };
+}
+
+/* Auth modal */
+function showAuthModal() {
+  const tpl = document.createElement('div');
+  tpl.className = 'modal';
+  tpl.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700">Sign in / Sign up</div>
+      <button class="btn" id="closeAuth">Close</button>
+    </div>
+    <div style="margin-top:8px">
+      <div style="display:flex;gap:8px">
+        <input id="authUser" placeholder="username" style="flex:1;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04)"/>
+        <input id="authPass" type="password" placeholder="password" style="flex:1;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04)"/>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn primary" id="authLogin">Login</button>
+        <button class="btn" id="authSignup">Sign up</button>
+      </div>
+      <div style="margin-top:8px" class="small">Tip: demo users: alice / bob / carol (password = their name)</div>
+    </div>
+  </div>`;
+  document.body.appendChild(tpl);
+  tpl.querySelector('#closeAuth').onclick = () => tpl.remove();
+  tpl.querySelector('#authLogin').onclick = () => {
+    const u = tpl.querySelector('#authUser').value.trim();
+    const p = tpl.querySelector('#authPass').value;
+    if (!u || !p) return alert('Enter credentials');
+    const user = getUserByUsername(u);
+    if (!user || user.passwordHash !== hashPassword(p)) { alert('Invalid credentials'); return; }
+    state.session.userId = user.id;
+    saveState();
+    tpl.remove();
+    refreshAll();
+  };
+  tpl.querySelector('#authSignup').onclick = () => {
+    const u = tpl.querySelector('#authUser').value.trim();
+    const p = tpl.querySelector('#authPass').value;
+    if (!u || !p) return alert('Enter username & password');
+    if (getUserByUsername(u)) return alert('Username taken');
+    const newU = { id: 'u_' + uid(6), username: u, displayName: u, bio: '', avatarDataUrl: null, passwordHash: hashPassword(p), following: [], followersCount: 0 };
+    state.users.push(newU);
+    state.session.userId = newU.id;
+    saveState();
+    tpl.remove();
+    refreshAll();
+  };
+}
+
+/* DM modal */
+function showDMModal() {
+  const me = getCurrentUser();
+  if (!me) { showAuthModal(); return; }
+  const tpl = document.createElement('div');
+  tpl.className = 'modal';
+  tpl.innerHTML = `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700">Direct Messages</div>
+      <button class="btn" id="closeDM">Close</button>
+    </div>
+    <div style="margin-top:8px">
+      <div style="display:flex;gap:8px">
+        <input id="dmRecipient" placeholder="Recipient username" style="flex:1;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04)"/>
+        <button class="btn" id="dmSelect">Select</button>
+      </div>
+      <div class="dm-conversation" id="dmConversation"></div>
+      <div class="dm-input">
+        <input id="dmText" placeholder="Type a message..." />
+        <button class="btn primary" id="dmSend">Send</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(tpl);
+  const conversationEl = tpl.querySelector('#dmConversation');
+  let selectedUserId = null;
+  function renderConversation() {
+    conversationEl.innerHTML = '';
+    if (!selectedUserId) {
+      conversationEl.innerHTML = '<div class="small" style="color:var(--muted)">Select a user to start chatting</div>';
+      return;
+    }
+    const messages = state.messages.filter(m => 
+      (m.senderId === me.id && m.recipientId === selectedUserId) ||
+      (m.senderId === selectedUserId && m.recipientId === me.id)
+    ).sort((a, b) => a.timestamp - b.timestamp);
+    messages.forEach(m => {
+      const isSent = m.senderId === me.id;
+      const sender = getUserById(m.senderId);
+      const div = document.createElement('div');
+      div.className = `dm-message ${isSent ? 'sent' : ''}`;
+      div.innerHTML = `<div class="small">${escapeHtml(sender.username)} · ${timeAgo(m.timestamp)}</div>
+                      <div>${escapeHtml(m.text)}</div>`;
+      conversationEl.appendChild(div);
+    });
+    conversationEl.scrollTop = conversationEl.scrollHeight;
+  }
+  tpl.querySelector('#closeDM').onclick = () => tpl.remove();
+  tpl.querySelector('#dmSelect').onclick = () => {
+    const username = tpl.querySelector('#dmRecipient').value.trim();
+    const user = getUserByUsername(username);
+    if (!user) return alert('User not found');
+    selectedUserId = user.id;
+    renderConversation();
+  };
+  tpl.querySelector('#dmSend').onclick = () => {
+    if (!selectedUserId) return alert('Select a recipient first');
+    const text = tpl.querySelector('#dmText').value.trim();
+    if (!text) return alert('Message cannot be empty');
+    state.messages.push({
+      id: 'm_' + uid(6),
+      senderId: me.id,
+      recipientId: selectedUserId,
+      text,
+      timestamp: Date.now()
+    });
+    saveState();
+    renderConversation();
+    tpl.querySelector('#dmText').value = '';
+    renderDMs();
+  };
+  renderConversation();
+}
+
+/* DM section */
+function renderDMs() {
+  const box = q('#dmBox');
+  box.innerHTML = '';
+  const me = getCurrentUser();
+  if (!me) {
+    box.innerHTML = '<div class="small" style="color:var(--muted)">Log in to see messages</div>';
+    return;
+  }
+  const conversations = {};
+  state.messages.forEach(m => {
+    const otherId = m.senderId === me.id ? m.recipientId : m.senderId;
+    if (!conversations[otherId]) conversations[otherId] = [];
+    conversations[otherId].push(m);
+  });
+  Object.entries(conversations).forEach(([userId, msgs]) => {
+    const user = getUserById(userId);
+    if (!user) return;
+    const latest = msgs.sort((a, b) => b.timestamp - a.timestamp)[0];
+    const div = document.createElement('div');
+    div.className = 'dm-item';
+    div.innerHTML = `<div style="font-weight:700">@${escapeHtml(user.username)}</div>
+                    <div class="small">${escapeHtml(latest.text.slice(0, 20) + (latest.text.length > 20 ? '...' : ''))}</div>`;
+    div.onclick = () => {
+      showDMModal();
+      const input = document.querySelector('#dmRecipient');
+      if (input) input.value = user.username;
+      const selectBtn = document.querySelector('#dmSelect');
+      if (selectBtn) selectBtn.click();
+    };
+    box.appendChild(div);
+  });
+  if (!Object.keys(conversations).length) {
+    box.innerHTML = '<div class="small" style="color:var(--muted)">No messages yet</div>';
+  }
+}
+
+/* Profile view */
+function openProfile(username) {
+  const u = getUserByUsername(username);
+  if (!u) return alert('Profile not found');
+  activeProfile = u;
+  feedMode = 'profile';
+  resetFeed();
+  q('#feedInfo').textContent = 'Profile — ' + u.displayName;
+}
+
+/* Search handler */
+q('#globalSearch').addEventListener('input', debounce(() => {
+  const qs = q('#globalSearch').value.trim();
+  const suggestions = q('#searchSuggestions');
+  suggestions.innerHTML = '';
+  if (!qs) {
+    suggestions.className = 'search-suggestions hidden';
+    return;
+  }
+  const users = state.users.filter(u => u.username.toLowerCase().includes(qs.toLowerCase()) || u.displayName.toLowerCase().includes(qs.toLowerCase())).slice(0, 3);
+  const hashtags = [...new Set(state.posts.flatMap(p => (p.text.match(/#\w+/g) || []).filter(t => t.toLowerCase().includes(qs.toLowerCase()))))].slice(0, 3);
+  const posts = state.posts.filter(p => p.text.toLowerCase().includes(qs.toLowerCase())).slice(0, 3);
+  if (users.length + hashtags.length + posts.length === 0) {
+    suggestions.className = 'search-suggestions hidden';
+    return;
+  }
+  users.forEach(u => {
+    const div = document.createElement('div');
+    div.className = 'search-suggestion-item';
+    div.innerHTML = `<div style="font-weight:700">@${escapeHtml(u.username)}</div><div class="small">${escapeHtml(u.displayName)}</div>`;
+    div.onclick = () => openProfile(u.username);
+    suggestions.appendChild(div);
+  });
+  hashtags.forEach(tag => {
+    const div = document.createElement('div');
+    div.className = 'search-suggestion-item';
+    div.textContent = tag;
+    div.onclick = () => searchTag(tag);
+    suggestions.appendChild(div);
+  });
+  posts.forEach(p => {
+    const author = getUserById(p.authorId);
+    const div = document.createElement('div');
+    div.className = 'search-suggestion-item';
+    div.innerHTML = `<div class="small">@${escapeHtml(author?.username || 'unknown')}</div><div>${escapeHtml(p.text.slice(0, 30) + (p.text.length > 30 ? '...' : ''))}</div>`;
+    div.onclick = () => {
+      feedMode = 'all';
+      feedEl.innerHTML = '';
+      renderPost(p);
+      feedLoader.style.display = 'none';
+      q('#feedInfo').textContent = 'Post';
+    };
+    suggestions.appendChild(div);
+  });
+  suggestions.className = 'search-suggestions';
+});
+q('#globalSearch').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    q('#searchSuggestions').className = 'search-suggestions hidden';
+    performSearch(q('#globalSearch').value.trim());
+  }
+});
+function performSearch(qs) {
+  if (!qs) return;
+  const user = state.users.find(u => u.username.toLowerCase() === qs.toLowerCase() || u.displayName.toLowerCase() === qs.toLowerCase());
+  if (user) { openProfile(user.username); return; }
+  if (qs.startsWith('#')) return searchTag(qs);
+  const matchedUsers = state.users.filter(u => u.username.toLowerCase().includes(qs.toLowerCase()) || u.displayName.toLowerCase().includes(qs.toLowerCase()));
+  if (matchedUsers.length > 0) { openProfile(matchedUsers[0].username); return; }
+  const matchedPosts = state.posts.filter(p => p.text.toLowerCase().includes(qs.toLowerCase()));
+  if (matchedPosts.length > 0) {
+    feedMode = 'all';
+    feedEl.innerHTML = '';
+    matchedPosts.forEach(renderPost);
+    feedLoader.style.display = 'none';
+    q('#feedInfo').textContent = `Search: ${qs}`;
+    return;
+  }
+  alert('No results found for: ' + qs);
+}
+function searchTag(tag) {
+  feedMode = 'all';
+  const filtered = getPostsSorted().filter(p => p.text.includes(tag));
+  activeProfile = null;
+  feedEl.innerHTML = '';
+  filtered.forEach(renderPost);
+  feedLoader.style.display = 'none';
+  q('#feedInfo').textContent = 'Search: ' + tag;
+}
+
+/* Utilities */
+function getCurrentUser() { return state.users.find(u => u.id === (state.session && state.session.userId)); }
+function fileToDataUrl(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  if (s < 3600 * 24) return Math.floor(s / 3600) + 'h';
+  return new Date(ts).toLocaleDateString();
+}
+function escapeHtml(t) { return t.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function linkify(text) {
+  return text.replace(/#(\w+)/g, (m, tag) => `<a href="#" style="color:var(--accent)" onclick="(function(){performSearch('#${tag}')})()">${m}</a>`)
+             .replace(/@(\w+)/g, (m, u) => `<a href="#" style="color:var(--accent)" onclick="(function(){performSearch('${u}')})()">${m}</a>`);
+}
+function debounce(func, wait = 100) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+/* Refresh / init */
+function renderTrendsThrottled() { renderTrends(); }
+function renderAll() {
+  renderLeft();
+  renderSuggested();
+  renderHeaderAuth();
+  renderMiniAvatar();
+  resetFeed();
+  renderTrends();
+  renderDMs();
+}
+function refreshFeedUI(reset = false) {
+  if (reset) resetFeed(0);
+  else {
+    feedEl.innerHTML = '';
+    feedCursor = 0;
+    renderFeedBatch();
+  }
+  renderHeaderAuth();
+}
+function renderHeaderAuth() {
+  const area = q('#authArea');
+  area.innerHTML = '';
+  const me = getCurrentUser();
+  if (!me) {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.textContent = 'Login';
+    b.onclick = showAuthModal;
+    area.appendChild(b);
+  } else {
+    const name = document.createElement('div');
+    name.style.display = 'flex';
+    name.style.gap = '8px';
+    name.style.alignItems = 'center';
+    const av = document.createElement('div');
+    av.className = 'avatar';
+    av.style.width = '38px';
+    av.style.height = '38px';
+    av.textContent = me.displayName[0] || '?';
+    const span = document.createElement('div');
+    span.innerHTML = `<div style="font-weight:700">${escapeHtml(me.displayName)}</div><div class="small">@${escapeHtml(me.username)}</div>`;
+    const outbtn = document.createElement('button');
+    outbtn.className = 'btn';
+    outbtn.textContent = 'Logout';
+    outbtn.onclick = () => {
+      state.session.userId = null;
+      saveState();
+      refreshAll();
+    };
+    span.onclick = () => openProfile(me.username);
+    name.appendChild(av);
+    name.appendChild(span);
+    name.appendChild(outbtn);
+    area.appendChild(name);
+  }
+}
+function renderMiniAvatar() {
+  const me = getCurrentUser();
+  const el = q('#miniAvatar');
+  el.textContent = me ? (me.displayName.split(' ').map(s => s[0]).slice(0, 2).join('')) : '?';
+}
+function renderTrends() {
+  const box = q('#trendsBox');
+  box.innerHTML = '';
+  const map = {};
+  state.posts.forEach(p => {
+    (p.text.match(/#\w+/g) || []).forEach(tag => {
+      map[tag] = (map[tag] || 0) + 1;
+    });
+  });
+  const items = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (items.length === 0) {
+    box.innerHTML = '<div class="small" style="color:var(--muted)">No trends yet — make one!</div>';
+    return;
+  }
+  items.forEach(([tag, c]) => {
+    const d = document.createElement('div');
+    d.className = 'trend-item';
+    d.innerHTML = `<div style="font-weight:700">${escapeHtml(tag)}</div><div class="small">${c}</div>`;
+    d.onclick = () => searchTag(tag);
+    box.appendChild(d);
+  });
+}
+
+/* Infinite scroll */
+const scrollHandler = debounce(() => {
+  const center = q('.center');
+  const isNearBottom = center.scrollTop + center.clientHeight > center.scrollHeight - 120 ||
+                       window.innerHeight + window.scrollY >= document.body.offsetHeight - 180;
+  if (isNearBottom) renderFeedBatch();
+}, 100);
+q('.center').addEventListener('scroll', scrollHandler);
+window.addEventListener('scroll', scrollHandler);
+
+/* Init */
+renderAll();
+window.performSearch = performSearch;
+window.openProfile = openProfile;
+</script>
+</body>
+</html>
