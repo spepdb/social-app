@@ -1,0 +1,466 @@
+<!-- File: /social.html -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marginalia — Uncensored Social Prototype</title>
+<style>
+/* == Basic layout & theme == */
+:root {
+  --bg: #0f1720;
+  --card: #0b1220;
+  --muted: #98a1b2;
+  --accent: #6ee7b7;
+  --accent-2: #8b5cf6;
+  --radius: 12px;
+  --maxw: 600px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body {
+  background: var(--bg);
+  color: #e6eef6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+  overflow-x: hidden;
+}
+.app {
+  width: 100%;
+  max-width: var(--maxw);
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+.header {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.header .brand {
+  font-size: 18px;
+  font-weight: 700;
+}
+.header .subtitle {
+  font-size: 12px;
+  color: var(--muted);
+}
+.center {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 15px;
+  margin-bottom: 10px;
+}
+.composer {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(180deg, #09303a, #04202a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 16px;
+}
+.composer textarea {
+  flex: 1;
+  min-height: 60px;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.04);
+  padding: 10px;
+  border-radius: 10px;
+  color: inherit;
+  resize: vertical;
+}
+.composer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn.primary {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border: 0;
+  color: #042022;
+}
+.feed { display: flex; flex-direction: column; gap: 10px; }
+.post {
+  display: flex;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0.005));
+  padding: 10px;
+  border-radius: var(--radius);
+}
+.post .meta { display: flex; gap: 8px; align-items: flex-start; }
+.post .body { flex: 1; }
+.post .text { white-space: pre-wrap; margin-top: 5px; }
+.post img.post-image, .post video.post-video {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 5px;
+  max-height: 300px;
+  object-fit: cover;
+}
+.post .poll-options { margin-top: 5px; display: grid; gap: 4px; }
+.post .poll-option {
+  padding: 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.post .actions { display: flex; gap: 10px; margin-top: 5px; align-items: center; flex-wrap: wrap; }
+.time { font-size: 12px; color: var(--muted); }
+.like-btn.liked { color: #ff7ab6; }
+.repost-btn.reposted { color: #6ee7b7; }
+#feedLoader { text-align: center; padding: 10px; color: var(--muted); }
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  max-width: var(--maxw);
+  background: var(--card);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+.bottom-nav .nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 12px;
+}
+.bottom-nav .nav-item.active { color: var(--accent); }
+.bottom-nav .nav-item i { font-size: 20px; margin-bottom: 2px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .btn { padding: 6px 10px; font-size: 13px; }
+  .avatar { width: 36px; height: 36px; font-size: 14px; }
+  .composer textarea { min-height: 50px; }
+  .post .avatar { width: 36px; height: 36px; }
+  .post img.post-image, .post video.post-video { max-height: 200px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="header">
+    <div class="brand">Marginalia</div>
+    <div class="subtitle">Uncensored prototype</div>
+  </div>
+  <div class="center">
+    <div class="card">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn" id="feedAll">For you</button>
+        <button class="btn" id="feedFollowing">Following</button>
+      </div>
+    </div>
+    <div class="composer">
+      <div id="miniAvatar" class="avatar">?</div>
+      <textarea id="miniComposer" placeholder="Share something... (press Enter+Ctrl to post)"></textarea>
+      <div class="composer-actions">
+        <input type="file" id="miniMedia" accept="image/*,video/mp4,video/webm" style="display:none" />
+        <button class="btn" id="miniAttach">Attach</button>
+        <button class="btn" id="miniPoll">Add Poll</button>
+        <button class="btn primary" id="miniPost">Post</button>
+      </div>
+    </div>
+    <div id="feed" class="feed"></div>
+    <div id="feedLoader" style="display:none">Loading more…</div>
+  </div>
+  <div class="bottom-nav">
+    <a href="#" class="nav-item active" data-section="home"><i class="fas fa-home"></i>Home</a>
+    <a href="#" class="nav-item" data-section="search"><i class="fas fa-search"></i>Search</a>
+    <a href="#" class="nav-item" data-section="notifications"><i class="fas fa-bell"></i>Notifications</a>
+    <a href="#" class="nav-item" data-section="messages"><i class="fas fa-envelope"></i>Messages</a>
+  </div>
+</div>
+
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<script>
+/* Minimal utilities */
+const q = sel => document.querySelector(sel);
+const uid = (n = 8) => Math.random().toString(36).slice(2, 2 + n);
+
+/* Persistence */
+const STORAGE_KEY = 'marginalia.v2';
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return seedInitial();
+    return JSON.parse(raw);
+  } catch (e) { return seedInitial(); }
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+/* Simple password hash (demo only) */
+function hashPassword(p) {
+  let h = 2166136261;
+  for (let i = 0; i < p.length; i++) { h ^= p.charCodeAt(i); h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24); }
+  return (h >>> 0).toString(36);
+}
+
+/* Demo seed */
+function seedInitial() {
+  const alice = { id: 'u_' + uid(6), username: 'alice', displayName: 'Alice Jun', bio: '', avatarDataUrl: null, passwordHash: hashPassword('alice'), following: [], followersCount: 0 };
+  const bob = { id: 'u_' + uid(6), username: 'bob', displayName: 'Bob Chen', bio: '', avatarDataUrl: null, passwordHash: hashPassword('bob'), following: [alice.id], followersCount: 0 };
+  const carol = { id: 'u_' + uid(6), username: 'carol', displayName: 'Caroline', bio: '', avatarDataUrl: null, passwordHash: hashPassword('carol'), following: [], followersCount: 0 };
+  const users = [alice, bob, carol];
+  const posts = [
+    { id: 'p_' + uid(6), authorId: alice.id, text: "Hello Marginalia! #hello", imageDataUrl: null, videoDataUrl: null, poll: null, timestamp: Date.now() - 3600 * 1000 * 4, likes: [], reposts: [], replies: [] },
+    { id: 'p_' + uid(6), authorId: bob.id, text: "Testing uploads.", imageDataUrl: null, videoDataUrl: null, poll: null, timestamp: Date.now() - 3600 * 1000 * 2, likes: [], reposts: [], replies: [] },
+    { id: 'p_' + uid(6), authorId: carol.id, text: "Poem time.", imageDataUrl: null, videoDataUrl: null, poll: null, timestamp: Date.now() - 3600 * 1000 * 1, likes: [], reposts: [], replies: [] },
+  ];
+  users.forEach(u => u.followersCount = users.filter(x => x.following && x.following.includes(u.id)).length);
+  return { users, posts, session: { userId: null } };
+}
+
+/* App state */
+let state = loadState();
+
+/* Helpers */
+function getUserById(id) { return state.users.find(u => u.id === id); }
+function getPostsSorted() { return state.posts.slice().sort((a, b) => b.timestamp - a.timestamp); }
+function getCurrentUser() { return state.users.find(u => u.id === (state.session && state.session.userId)); }
+
+/* UI rendering */
+const feedEl = q('#feed');
+const feedLoader = q('#feedLoader');
+let feedMode = 'all';
+let feedCursor = 0;
+const FEED_BATCH = 5;
+let isLoading = false;
+
+function resetFeed(cursor = 0) {
+  feedCursor = cursor;
+  feedEl.innerHTML = '';
+  feedLoader.style.display = 'none';
+  renderFeedBatch();
+}
+
+function renderFeedBatch() {
+  if (isLoading) return;
+  isLoading = true;
+  const allPosts = getPostsSorted();
+  const filtered = allPosts.filter(p => feedMode === 'all' || (feedMode === 'following' && getCurrentUser()?.following.includes(p.authorId)));
+  const batch = filtered.slice(feedCursor, feedCursor + FEED_BATCH);
+  batch.forEach(renderPost);
+  feedCursor += batch.length;
+  feedLoader.style.display = feedCursor >= filtered.length ? 'none' : 'block';
+  isLoading = false;
+}
+
+function renderPost(p) {
+  const author = getUserById(p.authorId) || { displayName: 'Unknown', username: 'unknown' };
+  const me = getCurrentUser();
+  const el = document.createElement('div');
+  el.className = 'post';
+  let pollHtml = '';
+  if (p.poll) {
+    pollHtml = '<div class="poll-options">';
+    p.poll.options.forEach(opt => {
+      pollHtml += `<div class="poll-option"><span>${escapeHtml(opt.text)}</span><span class="small">0 votes</span></div>`;
+    });
+    pollHtml += '</div>';
+  }
+  el.innerHTML = `
+    <div class="meta">
+      <div class="avatar">${author.displayName[0] || '?'}</div>
+    </div>
+    <div class="body">
+      <div><strong>${escapeHtml(author.displayName)}</strong> <span class="time">${timeAgo(p.timestamp)}</span></div>
+      <div class="text">${escapeHtml(p.text)}</div>
+      ${p.imageDataUrl ? `<img class="post-image" src="${p.imageDataUrl}" alt="post image" />` : ''}
+      ${p.videoDataUrl ? `<video class="post-video" src="${p.videoDataUrl}" controls></video>` : ''}
+      ${pollHtml}
+      <div class="actions">
+        <button class="btn like-btn ${me && p.likes.includes(me.id) ? 'liked' : ''}" data-like="${p.id}">♥ ${p.likes.length}</button>
+        <button class="btn" data-reply="${p.id}">Reply ${p.replies.length}</button>
+        <button class="btn repost-btn ${me && p.reposts.includes(me.id) ? 'reposted' : ''}" data-repost="${p.id}">Repost ${p.reposts.length}</button>
+        <button class="btn" data-share="${p.id}">Share</button>
+      </div>
+    </div>
+  `;
+  el.querySelectorAll('[data-like]').forEach(btn => {
+    btn.onclick = () => { if (me) { toggleLike(me.id, btn.getAttribute('data-like')); refreshFeedUI(); } };
+  });
+  el.querySelectorAll('[data-reply]').forEach(btn => {
+    btn.onclick = () => alert('Reply feature coming soon!');
+  });
+  el.querySelectorAll('[data-repost]').forEach(btn => {
+    btn.onclick = () => { if (me) { toggleRepost(me.id, btn.getAttribute('data-repost')); refreshFeedUI(); } };
+  });
+  el.querySelectorAll('[data-share]').forEach(btn => {
+    btn.onclick = () => { if (navigator.clipboard) navigator.clipboard.writeText(window.location.href).then(() => alert('Link copied!')); };
+  });
+  feedEl.appendChild(el);
+}
+
+function toggleLike(userId, postId) {
+  const post = state.posts.find(p => p.id === postId);
+  if (post) {
+    const idx = post.likes.indexOf(userId);
+    if (idx >= 0) post.likes.splice(idx, 1);
+    else post.likes.push(userId);
+    saveState();
+  }
+}
+
+function toggleRepost(userId, postId) {
+  const post = state.posts.find(p => p.id === postId);
+  if (post && getCurrentUser()) {
+    const idx = post.reposts.indexOf(userId);
+    if (idx >= 0) post.reposts.splice(idx, 1);
+    else {
+      post.reposts.push(userId);
+      state.posts.push({
+        id: 'p_' + uid(6),
+        authorId: userId,
+        text: `Reposted: ${post.text}`,
+        imageDataUrl: post.imageDataUrl,
+        videoDataUrl: post.videoDataUrl,
+        poll: null,
+        timestamp: Date.now(),
+        likes: [],
+        reposts: [],
+        replies: []
+      });
+    }
+    saveState();
+  }
+}
+
+/* Compose */
+q('#miniAttach').onclick = () => q('#miniMedia').click();
+q('#miniMedia').onchange = async (e) => {
+  const f = e.target.files[0];
+  if (f && f.size <= 10 * 1024 * 1024) {
+    const data = await fileToDataUrl(f);
+    q('#miniComposer').dataset.media = data;
+    q('#miniComposer').dataset.mediaType = f.type.startsWith('video') ? 'video' : 'image';
+  } else {
+    alert('File must be under 10MB.');
+  }
+};
+q('#miniPoll').onclick = () => alert('Poll feature coming soon!');
+q('#miniPost').onclick = () => createMiniPost();
+q('#miniComposer').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); createMiniPost(); }
+});
+async function createMiniPost() {
+  const me = getCurrentUser();
+  if (!me) return alert('Please log in to post.');
+  const text = q('#miniComposer').value.trim();
+  const media = q('#miniComposer').dataset.media || null;
+  const mediaType = q('#miniComposer').dataset.mediaType || null;
+  if (!text && !media) return alert('Add text or media to post.');
+  state.posts.push({
+    id: 'p_' + uid(6),
+    authorId: me.id,
+    text,
+    imageDataUrl: mediaType === 'image' ? media : null,
+    videoDataUrl: mediaType === 'video' ? media : null,
+    poll: null,
+    timestamp: Date.now(),
+    likes: [],
+    reposts: [],
+    replies: []
+  });
+  q('#miniComposer').value = '';
+  delete q('#miniComposer').dataset.media;
+  delete q('#miniComposer').dataset.mediaType;
+  saveState();
+  refreshFeedUI(true);
+}
+
+function refreshFeedUI(reset = false) {
+  if (reset) resetFeed(0);
+  else {
+    feedEl.innerHTML = '';
+    feedCursor = 0;
+    renderFeedBatch();
+  }
+  renderMiniAvatar();
+}
+
+function renderMiniAvatar() {
+  const me = getCurrentUser();
+  q('#miniAvatar').textContent = me ? me.displayName[0] || '?' : '?';
+}
+
+/* Utilities */
+function fileToDataUrl(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - ts) / 1000);
+  return s < 3600 ? `${Math.floor(s / 60)}m` : `${Math.floor(s / 3600)}h`;
+}
+function escapeHtml(t) { return t.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+/* Infinite scroll */
+const scrollHandler = () => {
+  if (!isLoading && feedEl.scrollHeight - feedEl.scrollTop - feedEl.clientHeight < 200) {
+    renderFeedBatch();
+  }
+};
+feedEl.addEventListener('scroll', scrollHandler);
+
+/* Navigation */
+q('.bottom-nav').addEventListener('click', (e) => {
+  const target = e.target.closest('.nav-item');
+  if (target) {
+    qn('.nav-item').forEach(item => item.classList.remove('active'));
+    target.classList.add('active');
+    const section = target.getAttribute('data-section');
+    if (section === 'home') {
+      feedMode = 'all';
+      resetFeed();
+    } else if (section === 'search') {
+      alert('Search feature coming in another file!');
+    } else if (section === 'notifications') {
+      alert('Notifications coming in another file!');
+    } else if (section === 'messages') {
+      alert('Messages coming in another file!');
+    }
+  }
+});
+
+/* Init */
+resetFeed();
+</script>
+</body>
+</html>
