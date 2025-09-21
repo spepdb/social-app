@@ -1,0 +1,409 @@
+<!-- File: dms.html -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Marginalia — Encrypted DMs</title>
+<style>
+:root{
+  --bg:#071022; --card:#0b1220; --muted:#98a1b2; --accent:#6ee7b7; --accent-2:#8b5cf6; --radius:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,var(--bg),#04111a);color:#e6eef6}
+.app{display:grid;grid-template-columns:300px 1fr;min-height:100vh;gap:18px;padding:18px}
+.sidebar{background:var(--card);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.chatlist{overflow:auto;display:flex;flex-direction:column;gap:8px;padding-right:6px}
+.chatitem{padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.chatitem.active{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#021017}
+.main{background:var(--card);border-radius:var(--radius);display:flex;flex-direction:column;overflow:hidden}
+.chatheader{padding:12px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;gap:12px}
+.messages{flex:1;padding:12px;overflow:auto;display:flex;flex-direction:column;gap:8px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.01))}
+.msg{max-width:70%;padding:10px 12px;border-radius:12px}
+.msg.me{align-self:flex-end;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#021017}
+.msg.other{align-self:flex-start;background:rgba(255,255,255,0.03)}
+.composer{display:flex;padding:12px;border-top:1px solid rgba(255,255,255,0.04);gap:8px}
+.composer input{flex:1;padding:10px;border-radius:10px;border:0;background:rgba(255,255,255,0.02);color:inherit}
+.btn{padding:8px 12px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#021017;cursor:pointer}
+.small{font-size:12px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);padding:8px}
+.center-col{display:flex;flex-direction:column;gap:8px}
+.login-card{background:rgba(0,0,0,0.2);padding:12px;border-radius:10px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="header">
+      <div style="font-weight:700">Encrypted DMs</div>
+      <div class="small">Demo</div>
+    </div>
+
+    <div id="authArea" class="login-card">
+      <!-- login / signup rendered here -->
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <input id="searchUser" placeholder="Find user" style="flex:1;padding:8px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:inherit" />
+      <button id="btnStartChat" class="btn">New</button>
+    </div>
+
+    <div style="margin-top:12px;font-weight:700">Conversations</div>
+    <div id="chatList" class="chatlist"></div>
+
+    <div style="margin-top:12px" class="note">
+      Messages are encrypted locally using RSA-OAEP (per-user) + AES-GCM per message. Private keys are encrypted with your password (PBKDF2 → AES-GCM) and stored locally.
+      <div style="margin-top:6px;color:var(--muted)">This is a browser demo — not production secure (see note below).</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="chatHeader" class="chatheader">
+      <div id="chatTitle">Select a conversation</div>
+      <div id="sessionInfo" class="small"></div>
+    </div>
+
+    <div id="messages" class="messages"></div>
+
+    <div class="composer">
+      <input id="msgInput" placeholder="Message..." />
+      <button id="sendMsg" class="btn">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* === Crypto helpers (Web Crypto) ===
+   Approach:
+   - On signup: generate RSA-OAEP key pair (2048, SHA-256).
+     export publicKey JWK -> store in user.publicKeyJwk
+     export privateKey JWK -> encrypt with password-derived AES key and store as user.encryptedPrivate (base64), with salt & iv
+   - On login: derive key from password + stored salt, decrypt private JWK, import privateKey into memory
+   - Sending message:
+     - generate AES-GCM ephemeral key (256), export raw, encrypt message with AES-GCM (random iv)
+     - encrypt raw AES key with recipient's publicKey (RSA-OAEP) -> encryptedKey
+     - store message {id, from, to, ts, encKey(b64), iv(b64), ciphertext(b64)}
+   - Receiving: decrypt encKey with privateKey -> import AES key -> decrypt ciphertext
+   Note: private keys are stored encrypted in localStorage; still a client-only demo.
+*/
+
+/* small binary helpers */
+const btoaUrl = (u8)=>{ let s=''; for(let i=0;i<u8.length;i++) s+=String.fromCharCode(u8[i]); return btoa(s); }
+const atobToU8 = (s)=>{ const bin = atob(s); const u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+const utf8Encoder = new TextEncoder();
+const utf8Decoder = new TextDecoder();
+
+/* storage */
+const STORAGE_KEY = 'marginalia.v1';
+let state = loadState();
+if(!state.messages) state.messages = []; saveState();
+
+/* crypto operations */
+async function generateUserKeypair(){
+  const kp = await crypto.subtle.generateKey({name:'RSA-OAEP', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256'}, true, ['encrypt','decrypt']);
+  const pub = await crypto.subtle.exportKey('jwk', kp.publicKey);
+  const priv = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  return {publicJwk:pub, privateJwk:priv};
+}
+async function importPublicKeyFromJwk(jwk){
+  return await crypto.subtle.importKey('jwk', jwk, {name:'RSA-OAEP', hash:'SHA-256'}, true, ['encrypt']);
+}
+async function importPrivateKeyFromJwk(jwk){
+  return await crypto.subtle.importKey('jwk', jwk, {name:'RSA-OAEP', hash:'SHA-256'}, true, ['decrypt']);
+}
+
+/* password-based key derivation to protect private JWK */
+async function deriveKeyFromPassword(password, salt, usages=['encrypt','decrypt']){
+  const baseKey = await crypto.subtle.importKey('raw', utf8Encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({name:'PBKDF2', salt: salt, iterations:150000, hash:'SHA-256'}, baseKey, {name:'AES-GCM', length:256}, false, usages);
+  return key;
+}
+async function encryptPrivateJwkWithPassword(privateJwkObj, password){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKeyFromPassword(password, salt, ['encrypt']);
+  const json = JSON.stringify(privateJwkObj);
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, utf8Encoder.encode(json));
+  return {salt: btoaUrl(salt), iv: btoaUrl(iv), ciphertext: btoaUrl(new Uint8Array(ct))};
+}
+async function decryptPrivateJwkWithPassword(enc, password){
+  const salt = atobToU8(enc.salt);
+  const iv = atobToU8(enc.iv);
+  const key = await deriveKeyFromPassword(password, salt, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, atobToU8(enc.ciphertext));
+  return JSON.parse(utf8Decoder.decode(pt));
+}
+
+/* message encryption: AES-GCM ephemeral key */
+async function encryptMessageForRecipient(plaintext, recipientPublicJwk){
+  // generate AES key
+  const aesKey = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, utf8Encoder.encode(plaintext));
+  const rawAes = new Uint8Array(await crypto.subtle.exportKey('raw', aesKey));
+  // encrypt AES raw key with recipient RSA public key
+  const pubKey = await importPublicKeyFromJwk(recipientPublicJwk);
+  const encKey = new Uint8Array(await crypto.subtle.encrypt({name:'RSA-OAEP'}, pubKey, rawAes));
+  return {ciphertext: btoaUrl(new Uint8Array(ct)), iv: btoaUrl(iv), encKey: btoaUrl(encKey)};
+}
+async function decryptMessageWithPrivateKey(msg, privateCryptoKey){
+  // decrypt encKey
+  const encKeyU8 = atobToU8(msg.encKey);
+  const rawAes = new Uint8Array(await crypto.subtle.decrypt({name:'RSA-OAEP'}, privateCryptoKey, encKeyU8));
+  // import AES key
+  const aesKey = await crypto.subtle.importKey('raw', rawAes, {name:'AES-GCM'}, false, ['decrypt']);
+  const iv = atobToU8(msg.iv);
+  const ct = atobToU8(msg.ciphertext);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, aesKey, ct);
+  return utf8Decoder.decode(pt);
+}
+
+/* state helpers */
+function loadState(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return seedInitial(); return JSON.parse(raw); } catch(e){ return seedInitial(); }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+/* seed if missing (keeps existing users/posts if present) */
+function seedInitial(){
+  const s = {users:[], posts:[], session:{userId:null}, messages:[]};
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  return s;
+}
+
+/* UI & session */
+let unlockedPrivateKey = null; // CryptoKey for RSA-OAEP decrypt (private)
+let unlockedUserId = null; // which user is unlocked in session
+
+const authArea = document.getElementById('authArea');
+const chatListEl = document.getElementById('chatList');
+const chatTitleEl = document.getElementById('chatTitle');
+const messagesEl = document.getElementById('messages');
+const sessionInfo = document.getElementById('sessionInfo');
+const msgInput = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendMsg');
+const btnStartChat = document.getElementById('btnStartChat');
+const searchUserInput = document.getElementById('searchUser');
+
+renderAuthArea();
+renderChatList();
+renderSessionInfo();
+
+/* ===== Auth UI: create account / unlock (login) ===== */
+function renderAuthArea(){
+  authArea.innerHTML = '';
+  const me = getCurrentUser();
+  if(!me || !me.encryptedPrivate){
+    // show signup (create user) or import
+    authArea.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input id="authUsername" placeholder="username" style="padding:8px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:inherit" />
+        <input id="authPassword" type="password" placeholder="password (used to encrypt private key)" style="padding:8px;border-radius:8px;border:0;background:rgba(255,255,255,0.02);color:inherit" />
+        <div style="display:flex;gap:8px">
+          <button id="btnSignup" class="btn">Sign up</button>
+          <button id="btnLogin" class="btn" style="background:#222">Unlock</button>
+        </div>
+        <div class="small">Existing users from the main app are available. When you sign up here, a keypair will be created and private key encrypted with your password.</div>
+      </div>`;
+    document.getElementById('btnSignup').onclick = signupHandler;
+    document.getElementById('btnLogin').onclick = unlockHandler;
+  } else {
+    // Should not be reached normally — fallback to unlocking
+    authArea.innerHTML = '<div class="small">No account present. Use sign up.</div>';
+  }
+}
+
+/* Signup: create user + keypair + encrypt private key with password */
+async function signupHandler(){
+  const username = (document.getElementById('authUsername').value || '').trim();
+  const password = document.getElementById('authPassword').value || '';
+  if(!username || !password) { alert('username & password required'); return; }
+  const existing = state.users.find(u => u.username.toLowerCase() === username.toLowerCase());
+  if(existing){ alert('username already exists in state — pick another'); return; }
+
+  // Create user record (we piggyback the same user model as main app).
+  const displayName = username;
+  // generate keypair and encrypt private JWK with password
+  const kp = await generateUserKeypair();
+  const enc = await encryptPrivateJwkWithPassword(kp.privateJwk, password);
+  const newUser = {
+    id: 'u_'+Math.random().toString(36).slice(2,9),
+    username, displayName, bio:'', avatarDataUrl:null,
+    // password is NOT stored here for DMs (main app may store passwordHash elsewhere). For demo, we do not store password.
+    publicKeyJwk: kp.publicJwk,
+    encryptedPrivate: enc,
+    following: [], followersCount: 0
+  };
+  state.users.push(newUser);
+  saveState();
+  alert('Account created. Now unlock with the same username/password to use DMs.');
+  renderChatList();
+}
+
+/* Unlock (login) — decrypt private key with password, set unlocked session */
+async function unlockHandler(){
+  const username = (document.getElementById('authUsername').value || '').trim();
+  const password = document.getElementById('authPassword').value || '';
+  if(!username || !password) { alert('username & password required'); return; }
+  const user = state.users.find(u=>u.username.toLowerCase()===username.toLowerCase());
+  if(!user || !user.encryptedPrivate){ alert('user not found or no encrypted private key for this user'); return; }
+  try{
+    const privateJwk = await decryptPrivateJwkWithPassword(user.encryptedPrivate, password);
+    unlockedPrivateKey = await importPrivateKeyFromJwk(privateJwk);
+    unlockedUserId = user.id;
+    // mark session
+    state.session.userId = user.id;
+    saveState();
+    renderSessionInfo();
+    renderChatList();
+    alert('Unlocked. You can now send/receive encrypted messages in this browser session.');
+  }catch(e){
+    console.error(e);
+    alert('Failed to decrypt private key — wrong password or corrupted key.');
+  }
+}
+
+/* session UI */
+function renderSessionInfo(){
+  const u = getCurrentUser();
+  sessionInfo.textContent = u ? `Unlocked: ${u.username}` : 'Not unlocked';
+  renderAuthArea();
+}
+
+/* list conversations: aggregate distinct peer ids where messages exist */
+function renderChatList(){
+  chatListEl.innerHTML = '';
+  const me = getCurrentUser();
+  const convIds = new Set();
+  state.messages.forEach(m => {
+    if(me && (m.from===me.id || m.to===me.id)){
+      convIds.add(m.from===me.id ? m.to : m.from);
+    }
+  });
+  // also include search result or all users as shortcut
+  const users = state.users.filter(u => u.id !== (me && me.id)).slice(0,40);
+  // show conversations first (peers with messages), then simple list of users
+  Array.from(convIds).concat(users.map(u=>u.id)).filter((v,i,arr)=>arr.indexOf(v)===i).forEach(peerId=>{
+    const peer = state.users.find(x=>x.id===peerId);
+    if(!peer) return;
+    const item = document.createElement('div'); item.className='chatitem';
+    item.innerHTML = `<div>
+        <div style="font-weight:700">${peer.displayName}</div>
+        <div class="small">@${peer.username}</div>
+      </div>
+      <div class="small">${unreadCountForPeer(peerId)}</div>`;
+    item.onclick = ()=> openConversation(peerId);
+    chatListEl.appendChild(item);
+  });
+}
+
+/* unread counter (simple) */
+function unreadCountForPeer(peerId){
+  const me = getCurrentUser();
+  if(!me) return '';
+  return state.messages.filter(m=>m.from===peerId && m.to===me.id && !m.read).length || '';
+}
+
+/* open conversation UI */
+let activePeerId = null;
+function openConversation(peerId){
+  activePeerId = peerId;
+  const peer = state.users.find(u=>u.id===peerId);
+  chatTitleEl.textContent = peer ? peer.displayName+' (@'+peer.username+')' : 'Conversation';
+  renderMessagesForActive();
+}
+
+/* render messages for currently active conversation (decrypt if possible) */
+async function renderMessagesForActive(){
+  messagesEl.innerHTML = '';
+  if(!activePeerId){ messagesEl.innerHTML = '<div class="small">No conversation selected</div>'; return; }
+  const me = getCurrentUser();
+  if(!me){ messagesEl.innerHTML = '<div class="small">Unlock an account to read messages</div>'; return; }
+  // gather messages between me and activePeer, sort by time ascending
+  const convo = state.messages.filter(m=> (m.from===me.id && m.to===activePeerId) || (m.from===activePeerId && m.to===me.id)).sort((a,b)=>a.ts - b.ts);
+  for(const m of convo){
+    let text = '[encrypted]';
+    try{
+      // if me is recipient or sender and we have private key unlocked, try to decrypt
+      if(unlockedPrivateKey && (m.to===me.id || m.from===me.id)){
+        text = await decryptMessageWithPrivateKey(m, unlockedPrivateKey);
+      }
+    }catch(e){
+      text = '[failed to decrypt]';
+    }
+    const div = document.createElement('div'); div.className = 'msg ' + (m.from===me.id ? 'me' : 'other');
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    // mark read if I'm recipient
+    if(m.to===me.id) m.read = true;
+  }
+  saveState();
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  renderChatList();
+}
+
+/* send message: encrypt for recipient with recipient public key, store */
+sendBtn.onclick = async ()=>{
+  const txt = (msgInput.value || '').trim();
+  if(!txt) return;
+  const me = getCurrentUser();
+  if(!me || !unlockedPrivateKey){ alert('Unlock a user with password first'); return; }
+  if(!activePeerId){ alert('Select a conversation or start a new one'); return; }
+  const peer = state.users.find(u=>u.id===activePeerId);
+  if(!peer || !peer.publicKeyJwk){ alert('Peer has no public key'); return; }
+  const enc = await encryptMessageForRecipient(txt, peer.publicKeyJwk);
+  const msg = {
+    id: 'm_'+Math.random().toString(36).slice(2,9),
+    from: me.id,
+    to: peer.id,
+    ts: Date.now(),
+    encKey: enc.encKey,
+    iv: enc.iv,
+    ciphertext: enc.ciphertext,
+    read: false
+  };
+  state.messages.push(msg);
+  saveState();
+  msgInput.value='';
+  await renderMessagesForActive();
+};
+
+/* start new chat by username typed in search */
+btnStartChat.onclick = ()=> {
+  const q = (searchUserInput.value || '').trim();
+  if(!q) return alert('Enter username to start chat');
+  const user = state.users.find(u=>u.username.toLowerCase()===q.toLowerCase());
+  if(!user) return alert('User not found in local state. Create that user in the main app or sign up here first.');
+  openConversation(user.id);
+  searchUserInput.value='';
+};
+
+/* helper: get current unlocked user */
+function getCurrentUser(){
+  if(!unlockedUserId) return null;
+  return state.users.find(u=>u.id===unlockedUserId) || null;
+}
+
+/* optionally allow unlock by selecting an existing user (if the main app already stores encryptedPrivate). 
+   For convenience: if main app has users with encryptedPrivate, you can paste their username + password here to unlock.
+*/
+
+/* expose manual function to import existing user private JWK (advanced demo) - not wired to UI */
+
+/* initial load: try to restore session if state.session.userId present and private not stored (we need password to decrypt) */
+if(state.session && state.session.userId){
+  // we do not auto-unlock private key (password required); show that session.userId exists
+  unlockedUserId = state.session.userId;
+  renderSessionInfo();
+  renderChatList();
+}
+
+/* Notes & limitations: show console message */
+console.log('DMs demo running. Important security notes:');
+console.log('- Private keys are encrypted by a password and stored in localStorage in this demo. If an attacker gains access to localStorage they may attempt offline attacks.');
+console.log('- This demo uses RSA-OAEP + AES-GCM which is suitable for E2EE in broad sense, but the implementation here is client-only and not audited. For production you need secure key backup, authentication, secure transport of public keys, replay protections, forward secrecy (use X25519/ECDH ephemeral keys), and a server that does NOT persist private keys.');
+
+</script>
+</body>
+</html>
