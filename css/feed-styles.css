@@ -1,0 +1,161 @@
+/* Stories Section */
+.stories {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #fff;
+}
+
+.story-placeholder {
+    width: 60px;
+    height: 60px;
+    background-color: #333;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #ccc;
+}
+
+/* Feed Container */
+.feed {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Create Post Button */
+.create-post-btn {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.create-post-btn:hover {
+    background-color: #ccc;
+}
+
+/* Post Styles */
+.post {
+    background-color: #1a1a1a;
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.post-profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.post-display-name {
+    font-weight: bold;
+}
+
+.post-username {
+    color: #ccc;
+    font-size: 14px;
+}
+
+.post-content p {
+    margin: 10px 0;
+}
+
+.post-content video {
+    width: 100%;
+    max-height: 300px;
+    background-color: #000;
+    border-radius: 5px;
+}
+
+.post-content video::-webkit-media-controls {
+    background-color: #000;
+    color: #fff;
+}
+
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid #333;
+}
+
+.post-actions button {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.post-actions button:hover {
+    color: #ccc;
+}
+
+/* Loading Indicator */
+.loading-indicator {
+    text-align: center;
+    color: #ccc;
+    padding: 20px;
+}
+
+/* Trending Sidebar */
+.trending-sidebar {
+    flex: 1;
+    background-color: #1a1a1a;
+    padding: 15px;
+    border-radius: 10px;
+    max-width: 300px;
+}
+
+.trending-sidebar h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.trending-item {
+    padding: 5px 0;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.trending-item:hover {
+    color: #fff;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .feed {
+        flex: 1;
+    }
+
+    .trending-sidebar {
+        display: none;
+    }
+
+    .post-content video {
+        max-height: 200px;
+    }
+}
