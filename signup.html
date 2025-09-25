@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign up for your uncensored social media platform with full freedom of speech.">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/auth-styles.css">
+    <title>Sign Up - Your Social Platform</title>
+</head>
+<body>
+    <!-- Persistent Top-Left Profile Section (Placeholder for Logged-Out State) -->
+    <header>
+        <div class="profile-menu-trigger" role="button" aria-label="Open menu (guest mode)">
+            <img src="/assets/images/logo.png" alt="Platform Logo" class="profile-pic">
+        </div>
+        <!-- Sidebar Menu (Hidden by default, shown via JS) -->
+        <nav class="sidebar-menu" aria-hidden="true">
+            <ul>
+                <li><a href="/login.html" aria-label="Log In">Log In</a></li>
+                <li><a href="/help.html" aria-label="Visit Help Center">Help Center</a></li>
+                <li><a href="/terms.html" aria-label="View Terms of Service">Terms of Service</a></li>
+                <li><a href="/privacy.html" aria-label="View Privacy Policy">Privacy Policy</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+        <section class="auth-container" aria-label="Sign Up Form">
+            <h1>Sign Up</h1>
+            <form id="signup-form" novalidate>
+                <!-- Contact Method Selection -->
+                <div class="form-group">
+                    <label for="contact-method">Sign up with:</label>
+                    <select id="contact-method" name="contact-method" required aria-required="true">
+                        <option value="email">Email</option>
+                        <option value="phone">Phone Number</option>
+                    </select>
+                </div>
+
+                <!-- Email or Phone Input -->
+                <div class="form-group">
+                    <label for="contact">Email or Phone Number</label>
+                    <input type="text" id="contact" name="contact" placeholder="Enter your email or phone" required aria-required="true">
+                </div>
+
+                <!-- Password Fields -->
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required aria-required="true" aria-describedby="password-help">
+                    <span id="password-help" class="help-text">Minimum 8 characters, include a special character.</span>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required aria-required="true">
+                </div>
+
+                <!-- 2FA Selection -->
+                <div class="form-group">
+                    <label>Enable Two-Factor Authentication (Optional)</label>
+                    <div class="2fa-options">
+                        <label><input type="checkbox" name="2fa" value="email"> Email Code</label>
+                        <label><input type="checkbox" name="2fa" value="sms"> SMS (Phone required)</label>
+                        <label><input type="checkbox" name="2fa" value="authenticator"> Authenticator App</label>
+                    </div>
+                </div>
+
+                <!-- Terms and Captcha -->
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="terms" name="terms" required aria-required="true">
+                        I agree to the <a href="/terms.html">Terms of Service</a> and <a href="/privacy.html">Privacy Policy</a>.
+                    </label>
+                </div>
+                <div class="form-group">
+                    <div id="captcha" class="g-recaptcha" data-sitekey="your-recaptcha-site-key" aria-label="Captcha verification"></div>
+                </div>
+
+                <!-- Submit Button and Messages -->
+                <button type="submit" class="submit-btn" aria-label="Sign Up">Sign Up</button>
+                <div id="message" class="message" aria-live="polite"></div>
+            </form>
+            <p>Already have an account? <a href="/login.html">Log In</a></p>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation Taskbar (Minimal for Auth Pages) -->
+    <footer class="nav-taskbar">
+        <a href="/index.html" aria-label="Home"><img src="/assets/icons/home.svg" alt="Home"></a>
+        <a href="/search.html" aria-label="Search"><img src="/assets/icons/search.svg" alt="Search"></a>
+        <a href="/login.html" aria-label="Log In"><img src="/assets/icons/login.svg" alt="Log In"></a>
+        <a href="/dms.html" aria-label="Messages"><img src="/assets/icons/dms.svg" alt="Messages"></a>
+    </footer>
+
+    <!-- JavaScript Links -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="/js/scripts.js"></script>
+    <script src="/js/auth.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.error('Service Worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>
