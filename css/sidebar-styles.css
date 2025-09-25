@@ -1,0 +1,97 @@
+/* Sidebar Menu */
+.sidebar-menu {
+    position: fixed;
+    top: 60px;
+    left: -250px;
+    width: 250px;
+    height: calc(100vh - 60px - 60px);
+    background-color: #1a1a1a;
+    padding: 20px;
+    transition: left 0.3s ease;
+    z-index: 1001;
+    overflow-y: auto;
+}
+
+.sidebar-menu[aria-hidden="false"] {
+    left: 0;
+}
+
+.sidebar-menu ul {
+    list-style: none;
+}
+
+.sidebar-menu li {
+    margin: 15px 0;
+}
+
+.sidebar-menu a {
+    color: #fff;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.sidebar-menu a:hover {
+    background-color: #333;
+}
+
+#feed-toggle {
+    position: relative;
+}
+
+.feed-toggle-options {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 5px;
+    z-index: 1002;
+}
+
+#feed-toggle:hover .feed-toggle-options {
+    display: block;
+}
+
+.feed-toggle-options button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.feed-toggle-options button:hover {
+    background-color: #333;
+}
+
+/* Overlay for Sidebar (to close on click outside) */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.sidebar-overlay[aria-hidden="false"] {
+    display: block;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .sidebar-menu {
+        width: 200px;
+    }
+}
